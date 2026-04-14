@@ -96,7 +96,8 @@ export async function handleYoutubeAudio(ctx: Context) {
 async function processDownloadVideo(
   ctx: Context,
   url: string,
-  platform: string
+  platform: string,
+  quality: "360" | "480" | "720" | "1080" = "720"
 ) {
   const emoji = getPlatformEmoji(platform as ReturnType<typeof detectPlatform>);
   const platformName = getPlatformName(
@@ -104,7 +105,7 @@ async function processDownloadVideo(
   );
 
   const msg = await ctx.reply(
-    `${emoji} <b>${platformName}</b> se video download ho rahi hai...\n⏳ Please wait...`,
+    `${emoji} <b>${platformName}</b> se ${quality}p video download ho rahi hai...\n⏳ Please wait...`,
     { parse_mode: "HTML" }
   );
 
@@ -220,9 +221,40 @@ async function processDownloadAudio(ctx: Context, url: string) {
   }
 }
 
+const pendingDownloads = new Map<string, { url: string; platform: string }>();
+
+export async function handleCallbackQuery(ctx: Context) {
+  const cb = ctx.callbackQuery as any;
+  if (!cb?.data) return;
+
+  const data: string = cb.data;
+  if (!data.startsWith("dl_")) return;
+
+  await ctx.answerCbQuery("⏳ Download shuru ho rahi hai...").catch(() => {});
+
+  const parts = data.split("_");
+  const quality = parts[1];
+  const key = parts.slice(2).join("_");
+
+  const pending = pendingDownloads.get(key);
+  if (!pending) {
+    return ctx.reply("⏰ Yeh request expire ho gayi. Dobara link bhejo!");
+  }
+
+  pendingDownloads.delete(key);
+
+  if (!(await checkLimit(ctx))) return;
+
+  if (quality === "audio") {
+    await processDownloadAudio(ctx, pending.url);
+  } else {
+    const q = (["360", "720", "1080"].includes(quality) ? quality : "720") as "360" | "720" | "1080";
+    await processDownloadVideo(ctx, pending.url, pending.platform, q);
+  }
+}
+
 export async function handleUrl(ctx: Context) {
   if (!ctx.has(message("text"))) return;
-  if (!(await checkLimit(ctx))) return;
 
   const text = ctx.message.text;
   const url = extractUrl(text);
@@ -240,20 +272,33 @@ export async function handleUrl(ctx: Context) {
     );
   }
 
-  if (
-    platform === "youtube" &&
-    (text.toLowerCase().includes("mp3") ||
-      text.toLowerCase().includes("audio") ||
-      text.toLowerCase().includes("song") ||
-      text.toLowerCase().includes("music"))
-  ) {
-    return processDownloadAudio(ctx, url);
-  }
+  const userId = ctx.from?.id || 0;
+  const key = `${userId}_${Date.now()}`;
+  pendingDownloads.set(key, { url, platform });
+  setTimeout(() => pendingDownloads.delete(key), 5 * 60 * 1000);
 
-  const isAudioOnlyPlatform = false;
-  if (isAudioOnlyPlatform) {
-    return processDownloadAudio(ctx, url);
-  }
+  await ctx.replyWithHTML(
+    `${emoji} <b>${platformName}</b> link mila!\n\n🎬 Quality chuno:`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "📱 360p", callback_data: `dl_360_${key}` },
+            { text: "📺 720p", callback_data: `dl_720_${key}` },
+            { text: "🎬 1080p", callback_data: `dl_1080_${key}` },
+          ],
+          [
+            { text: "🎵 Audio Only (MP3)", callback_data: `dl_audio_${key}` },
+          ],
+        ],
+      },
+    }
+  );
+}
+
+async function processUrlDownload(ctx: Context, url: string, platform: string) {
+  const emoji = getPlatformEmoji(platform as ReturnType<typeof detectPlatform>);
+  const platformName = getPlatformName(platform as ReturnType<typeof detectPlatform>);
 
   const msg = await ctx.reply(
     `${emoji} <b>${platformName}</b> se download ho rahi hai...\n⏳ Please wait...`,
