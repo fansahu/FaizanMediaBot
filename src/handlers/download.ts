@@ -19,9 +19,13 @@ import { db, FREE_DAILY_LIMIT } from "../database/db.js";
 const MAX_SIZE_MB = 45;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
+const ADMIN_ID = Number(process.env.ADMIN_ID || "0");
+
 async function checkLimit(ctx: Context): Promise<boolean> {
   const userId = ctx.from?.id;
   if (!userId) return false;
+
+  if (ADMIN_ID && userId === ADMIN_ID) return true;
 
   await db.getOrCreate(userId, ctx.from?.username, ctx.from?.first_name);
   const check = await db.canDownload(userId);
