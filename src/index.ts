@@ -1,0 +1,92 @@
+import { Telegraf } from "telegraf";
+import { message } from "telegraf/filters";
+import { handleStart } from "./handlers/start.js";
+import { handleHelp } from "./handlers/help.js";
+import { handleYoutubeVideo, handleYoutubeAudio, handleUrl } from "./handlers/download.js";
+import { handleAI, handleAIReset } from "./handlers/ai.js";
+import { handleWeather } from "./handlers/weather.js";
+import { handleTranslate } from "./handlers/translator.js";
+import { handleNews } from "./handlers/news.js";
+import { handleLyrics } from "./handlers/lyrics.js";
+import { handleShorten, handleCalc, handleCrypto, handleQuote } from "./handlers/tools.js";
+import { extractUrl } from "./utils/detector.js";
+import { logger } from "./utils/logger.js";
+
+const token = process.env.TELEGRAM_BOT_TOKEN;
+if (!token) {
+  logger.error("TELEGRAM_BOT_TOKEN environment variable nahi mili!");
+  process.exit(1);
+}
+
+const bot = new Telegraf(token, {
+  handlerTimeout: 5 * 60 * 1000,
+});
+
+bot.telegram.setMyCommands([
+  { command: "start", description: "Bot shuru karo" },
+  { command: "help", description: "Saari commands dekho" },
+  { command: "ai", description: "AI se baat karo (ChatGPT)" },
+  { command: "weather", description: "Mausam dekho — /weather Delhi" },
+  { command: "translate", description: "Translate — /translate en Namaste" },
+  { command: "news", description: "News — /news india" },
+  { command: "lyrics", description: "Lyrics — /lyrics Artist - Song" },
+  { command: "video", description: "YouTube video download" },
+  { command: "mp3", description: "YouTube MP3 download" },
+  { command: "shorten", description: "URL chhota karo" },
+  { command: "calc", description: "Calculator — /calc 25*4" },
+  { command: "crypto", description: "Crypto price — /crypto bitcoin" },
+  { command: "quote", description: "Motivational quote" },
+  { command: "aireset", description: "AI chat history reset karo" },
+]);
+
+bot.command("start", handleStart);
+bot.command("help", handleHelp);
+bot.command("ai", handleAI);
+bot.command("aireset", handleAIReset);
+bot.command("weather", handleWeather);
+bot.command("translate", handleTranslate);
+bot.command("news", handleNews);
+bot.command("lyrics", handleLyrics);
+bot.command("video", handleYoutubeVideo);
+bot.command("mp3", handleYoutubeAudio);
+bot.command("shorten", handleShorten);
+bot.command("calc", handleCalc);
+bot.command("crypto", handleCrypto);
+bot.command("quote", handleQuote);
+
+bot.on(message("text"), async (ctx) => {
+  const text = ctx.message.text;
+  if (text.startsWith("/")) return;
+
+  if (extractUrl(text)) {
+    await handleUrl(ctx);
+  } else {
+    await ctx.replyWithHTML(
+      `💡 Koi link bhejo — main download kar dunga!\n\n` +
+        `Ya commands use karo:\n` +
+        `🤖 /ai — AI chat\n` +
+        `🌤️ /weather Delhi — Mausam\n` +
+        `📰 /news india — News\n` +
+        `🎵 /lyrics — Song lyrics\n\n` +
+        `/help — Saari features dekho`
+    );
+  }
+});
+
+bot.catch((err: unknown) => {
+  const errMsg = err instanceof Error ? err.message : String(err);
+  logger.error(`Bot error: ${errMsg}`);
+});
+
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+logger.info("🚀 FaizanMediaBot shuru ho raha hai...");
+
+bot.launch().catch((err: unknown) => {
+  const errMsg = err instanceof Error ? err.message : String(err);
+  logger.error(`Bot error: ${errMsg}`);
+  process.exit(1);
+});
+
+logger.info("✅ FaizanMediaBot live hai! @FaizanMediaBot pe jao aur use karo.");
