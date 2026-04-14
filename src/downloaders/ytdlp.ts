@@ -54,7 +54,7 @@ export async function getMediaInfo(url: string): Promise<MediaInfo> {
 
 export async function downloadVideo(
   url: string,
-  quality: "360" | "480" | "720" = "720"
+  quality: "360" | "480" | "720" | "1080" = "720"
 ): Promise<DownloadResult> {
   const tmpDir = await getTempDir();
   const outTemplate = path.join(tmpDir, "%(title).50s.%(ext)s");
