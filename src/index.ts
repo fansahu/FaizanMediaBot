@@ -10,6 +10,10 @@ import { handleNews } from "./handlers/news.js";
 import { handleLyrics } from "./handlers/lyrics.js";
 import { handleShorten, handleCalc, handleCrypto, handleQuote } from "./handlers/tools.js";
 import { registerAdminHandlers } from "./handlers/admin.js";
+import { handlePhotoAnalysis, handleQR } from "./handlers/photo.js";
+import { handleVoice } from "./handlers/voice.js";
+import { handleScreenshot, handleDefine, handlePing } from "./handlers/extras.js";
+import { handleCallbackQuery } from "./handlers/download.js";
 import { extractUrl } from "./utils/detector.js";
 import { logger } from "./utils/logger.js";
 import { db } from "./database/db.js";
@@ -46,6 +50,10 @@ bot.telegram.setMyCommands([
   { command: "calc", description: "Calculator — /calc 25*4" },
   { command: "crypto", description: "Crypto price — /crypto bitcoin" },
   { command: "quote", description: "Motivational quote" },
+  { command: "qr", description: "QR Code banao — /qr text ya link" },
+  { command: "ss", description: "Website screenshot — /ss google.com" },
+  { command: "define", description: "Dictionary — /define word" },
+  { command: "ping", description: "Bot speed check karo" },
   { command: "aireset", description: "AI chat history reset" },
 ]);
 
@@ -63,8 +71,16 @@ bot.command("shorten", handleShorten);
 bot.command("calc", handleCalc);
 bot.command("crypto", handleCrypto);
 bot.command("quote", handleQuote);
+bot.command("qr", handleQR);
+bot.command("ss", handleScreenshot);
+bot.command("define", handleDefine);
+bot.command("ping", handlePing);
 
 registerAdminHandlers(bot);
+
+bot.on("callback_query", handleCallbackQuery);
+bot.on(message("photo"), handlePhotoAnalysis);
+bot.on(message("voice"), handleVoice);
 
 bot.on(message("text"), async (ctx) => {
   const text = ctx.message.text;
