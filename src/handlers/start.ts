@@ -16,20 +16,33 @@ export async function handleStart(ctx: Context) {
   await ctx.replyWithHTML(
     `👋 <b>Assalamu Alaikum ${name}!</b>\n\n` +
     `🚀 <b>FaizanMediaBot</b> mein aapka swagat hai!\n\n` +
-    `<b>📥 Download — Bas link bhejo!</b>\n` +
+    `📥 Koi bhi link bhejo — main download kar dunga!\n` +
     `▶️ YouTube • 📸 Instagram • 🎵 TikTok\n` +
     `🐦 Twitter/X • 👥 Facebook • 🔴 Reddit\n\n` +
-    `<b>🤖 AI Features:</b>\n` +
-    `🤖 /ai — AI Chat\n` +
-    `📸 Photo bhejo — AI analysis!\n` +
-    `🎙️ Voice bhejo — Text mein convert!\n\n` +
-    `<b>🛠️ Tools:</b>\n` +
-    `🌤️ /weather • 🌐 /translate • 📰 /news\n` +
-    `🎵 /lyrics • 💰 /crypto • 🧮 /calc\n` +
-    `📱 /qr • 📸 /ss • 📖 /define • 💬 /quote\n\n` +
-    `<b>👤 Account:</b>\n` +
-    `⭐ /premium • 📊 /mystats • 🆔 /myid\n\n` +
-    `<b>ℹ️ Help:</b> /help`
+    `🤖 Photo ya voice bhejo — AI analyze karega!\n\n` +
+    `Neeche buttons se features use karo 👇`,
+    {
+      reply_markup: {
+        keyboard: [
+          [
+            { text: "📥 Download Help" },
+            { text: "🤖 AI Chat" },
+          ],
+          [
+            { text: "🌤️ Weather" },
+            { text: "📰 News" },
+            { text: "💰 Crypto" },
+          ],
+          [
+            { text: "📊 My Stats" },
+            { text: "⭐ Premium" },
+            { text: "📖 Help" },
+          ],
+        ],
+        resize_keyboard: true,
+        persistent: true,
+      },
+    }
   );
 
   if (isNewUser && ADMIN_ID && userId !== ADMIN_ID) {
