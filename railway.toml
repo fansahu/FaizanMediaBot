@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install && pnpm --filter @workspace/telegram-bot install"
+
+[deploy]
+startCommand = "pnpm --filter @workspace/telegram-bot run start"
+restartPolicyType = "always"
