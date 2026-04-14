@@ -1,7 +1,7 @@
 import { Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { handleStart } from "./handlers/start.js";
-import { handleHelp } from "./handlers/help.js";
+import { handleHelp, handleHelpCallback } from "./handlers/help.js";
 import { handleYoutubeVideo, handleYoutubeAudio, handleUrl } from "./handlers/download.js";
 import { handleAI, handleAIReset } from "./handlers/ai.js";
 import { handleWeather } from "./handlers/weather.js";
@@ -9,7 +9,7 @@ import { handleTranslate } from "./handlers/translator.js";
 import { handleNews } from "./handlers/news.js";
 import { handleLyrics } from "./handlers/lyrics.js";
 import { handleShorten, handleCalc, handleCrypto, handleQuote } from "./handlers/tools.js";
-import { registerAdminHandlers } from "./handlers/admin.js";
+import { registerAdminHandlers, handleMyStats } from "./handlers/admin.js";
 import { handlePhotoAnalysis, handleQR } from "./handlers/photo.js";
 import { handleVoice } from "./handlers/voice.js";
 import { handleScreenshot, handleDefine, handlePing } from "./handlers/extras.js";
@@ -78,7 +78,16 @@ bot.command("ping", handlePing);
 
 registerAdminHandlers(bot);
 
-bot.on("callback_query", handleCallbackQuery);
+bot.on("callback_query", async (ctx) => {
+  const cb = ctx.callbackQuery as any;
+  if (!cb?.data) return;
+  if (cb.data.startsWith("help_")) {
+    await handleHelpCallback(ctx);
+  } else {
+    await handleCallbackQuery(ctx);
+  }
+});
+
 bot.on(message("photo"), handlePhotoAnalysis);
 bot.on(message("voice"), handleVoice);
 
@@ -86,18 +95,29 @@ bot.on(message("text"), async (ctx) => {
   const text = ctx.message.text;
   if (text.startsWith("/")) return;
 
+  const keyboardActions: Record<string, () => Promise<void>> = {
+    "📥 Download Help": () => handleHelp(ctx),
+    "🤖 AI Chat": () => ctx.replyWithHTML(`🤖 <b>AI Chat</b>\n\nApna sawaal likho:\n<code>/ai tumhara sawaal</code>\n\nYa seedha photo/voice bhejo!`),
+    "🌤️ Weather": () => ctx.reply("🌤️ Shehar ka naam likho:\n/weather Delhi"),
+    "📰 News": () => ctx.replyWithHTML(`📰 <b>News</b>\n\n/news india\n/news world\n/news tech\n/news sports`),
+    "💰 Crypto": () => ctx.reply("💰 Coin ka naam likho:\n/crypto bitcoin"),
+    "📊 My Stats": () => handleMyStats(ctx),
+    "⭐ Premium": () => ctx.replyWithHTML(`⭐ <b>Premium</b>\n\nFree: 10 downloads/day\nPremium: Unlimited ♾️\n\n/premium — Details dekho\n/myid — Apna ID lo`),
+    "📖 Help": () => handleHelp(ctx),
+  };
+
+  const action = keyboardActions[text];
+  if (action) {
+    await action();
+    return;
+  }
+
   if (extractUrl(text)) {
     await handleUrl(ctx);
   } else {
     await ctx.replyWithHTML(
       `💡 Koi link bhejo — main download kar dunga!\n\n` +
-        `Ya commands use karo:\n` +
-        `🤖 /ai — AI chat\n` +
-        `🌤️ /weather Delhi — Mausam\n` +
-        `📰 /news india — News\n` +
-        `🎵 /lyrics — Song lyrics\n` +
-        `⭐ /premium — Premium info\n\n` +
-        `/help — Saari features dekho`
+      `Ya neeche buttons use karo 👇`
     );
   }
 });
