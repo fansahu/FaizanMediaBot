@@ -14,10 +14,38 @@ import {
   cleanupFile,
 } from "../downloaders/ytdlp.js";
 import { logger } from "../utils/logger.js";
-import { promises as fs } from "fs";
+import { db, FREE_DAILY_LIMIT } from "../database/db.js";
 
 const MAX_SIZE_MB = 45;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+async function checkLimit(ctx: Context): Promise<boolean> {
+  const userId = ctx.from?.id;
+  if (!userId) return false;
+
+  await db.getOrCreate(userId, ctx.from?.username, ctx.from?.first_name);
+  const check = await db.canDownload(userId);
+
+  if (check.isBanned) {
+    await ctx.reply("🚫 Tumhara account ban kiya gaya hai. Admin se contact karo.");
+    return false;
+  }
+
+  if (!check.allowed) {
+    await ctx.replyWithHTML(
+      `⛔ <b>Daily Limit Khatam!</b>\n\n` +
+      `🆓 Free plan: <b>${FREE_DAILY_LIMIT} downloads/day</b>\n` +
+      `📊 Aaj tumne ${FREE_DAILY_LIMIT} downloads kar liye!\n\n` +
+      `⭐ <b>Premium lo — Unlimited downloads!</b>\n` +
+      `👉 /premium — Details dekho\n` +
+      `🆔 /myid — Apna ID lo admin ko dene ke liye\n\n` +
+      `⏰ Limit kal subah reset hogi!`
+    );
+    return false;
+  }
+
+  return true;
+}
 
 function formatDuration(secs: number): string {
   const m = Math.floor(secs / 60);
@@ -30,6 +58,8 @@ function formatSize(bytes: number): string {
 }
 
 export async function handleYoutubeVideo(ctx: Context) {
+  if (!(await checkLimit(ctx))) return;
+
   const text = ctx.text || "";
   const parts = text.trim().split(/\s+/);
   const url = parts.slice(1).find((p) => p.startsWith("http"));
@@ -44,6 +74,8 @@ export async function handleYoutubeVideo(ctx: Context) {
 }
 
 export async function handleYoutubeAudio(ctx: Context) {
+  if (!(await checkLimit(ctx))) return;
+
   const text = ctx.text || "";
   const parts = text.trim().split(/\s+/);
   const url = parts.slice(1).find((p) => p.startsWith("http"));
@@ -112,12 +144,13 @@ async function processDownloadVideo(
     await ctx.replyWithVideo(
       { source: result.filePath },
       {
-        caption: `${emoji} <b>${info.title || result.title}</b>\n📥 @ddoshulk_bot`,
+        caption: `${emoji} <b>${info.title || result.title}</b>\n📥 @FaizanMediaBot`,
         parse_mode: "HTML",
         supports_streaming: true,
       }
     );
 
+    if (ctx.from?.id) await db.recordDownload(ctx.from.id);
     logger.info(`Video sent: ${result.title}`);
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -165,11 +198,12 @@ async function processDownloadAudio(ctx: Context, url: string) {
       { source: result.filePath, filename: `${result.title}.mp3` },
       {
         title: result.title,
-        caption: `🎵 <b>${result.title}</b>\n📥 @ddoshulk_bot`,
+        caption: `🎵 <b>${result.title}</b>\n📥 @FaizanMediaBot`,
         parse_mode: "HTML",
       }
     );
 
+    if (ctx.from?.id) await db.recordDownload(ctx.from.id);
     logger.info(`Audio sent: ${result.title}`);
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
@@ -184,6 +218,7 @@ async function processDownloadAudio(ctx: Context, url: string) {
 
 export async function handleUrl(ctx: Context) {
   if (!ctx.has(message("text"))) return;
+  if (!(await checkLimit(ctx))) return;
 
   const text = ctx.message.text;
   const url = extractUrl(text);
@@ -255,7 +290,7 @@ export async function handleUrl(ctx: Context) {
           file.ext.toLowerCase()
         );
 
-        const caption = `${emoji} <b>${file.title.slice(0, 80)}</b>\n📥 @ddoshulk_bot`;
+        const caption = `${emoji} <b>${file.title.slice(0, 80)}</b>\n📥 @FaizanMediaBot`;
 
         if (isImage) {
           await ctx.replyWithPhoto(
@@ -275,6 +310,7 @@ export async function handleUrl(ctx: Context) {
         }
 
         sentCount++;
+        if (ctx.from?.id) await db.recordDownload(ctx.from.id);
       } catch (e) {
         logger.warn(`Failed to send file: ${file.filePath}`);
       } finally {
