@@ -1,8 +1,12 @@
 [phases.setup]
-nixPkgs = ["yt-dlp", "ffmpeg"]
+nixPkgs = ["python3", "ffmpeg"]
 
 [phases.install]
-cmds = ["npm install -g pnpm", "pnpm install"]
+cmds = [
+  "npm install -g pnpm",
+  "pnpm install",
+  "pip install -q yt-dlp"
+]
 
 [start]
 cmd = "pnpm run start"
