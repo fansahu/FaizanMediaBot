@@ -1,61 +1,90 @@
 import { Context } from "telegraf";
 
+const helpSections: Record<string, string> = {
+  download:
+    `📥 <b>MEDIA DOWNLOADER</b>\n\n` +
+    `Bas link paste karo — quality buttons dikhenge!\n\n` +
+    `✅ YouTube • Instagram • TikTok\n` +
+    `✅ Twitter/X • Facebook • Reddit\n\n` +
+    `<b>Commands:</b>\n` +
+    `▶️ /video [link] — YouTube video\n` +
+    `🎵 /mp3 [link] — YouTube audio\n\n` +
+    `⚠️ Max 45MB | Private account support nahi`,
+
+  ai:
+    `🤖 <b>AI FEATURES</b>\n\n` +
+    `💬 /ai [sawaal] — AI se baat karo\n` +
+    `📸 Photo bhejo → AI image analysis\n` +
+    `🎙️ Voice bhejo → Text mein convert\n` +
+    `🔄 /aireset — Chat history reset\n\n` +
+    `<i>Gemini AI powered — free & unlimited!</i>`,
+
+  tools:
+    `🛠️ <b>TOOLS</b>\n\n` +
+    `🌤️ /weather Delhi — Mausam\n` +
+    `🌐 /translate en Hello — Translate\n` +
+    `📰 /news india — Latest news\n` +
+    `🎵 /lyrics Arijit - Tum Hi Ho\n` +
+    `🔗 /shorten [URL] — Chhota link\n` +
+    `🧮 /calc 25*4+10 — Calculator\n` +
+    `💰 /crypto bitcoin — Crypto price\n` +
+    `💬 /quote — Motivational quote`,
+
+  extras:
+    `✨ <b>EXTRA FEATURES</b>\n\n` +
+    `📱 /qr [text/link] — QR Code banao\n` +
+    `📸 /ss google.com — Website screenshot\n` +
+    `📖 /define [word] — English dictionary\n` +
+    `🏓 /ping — Bot speed check\n\n` +
+    `<b>Account:</b>\n` +
+    `⭐ /premium — Premium info\n` +
+    `📊 /mystats — Apni stats\n` +
+    `🆔 /myid — Apna Telegram ID`,
+};
+
 export async function handleHelp(ctx: Context) {
   await ctx.replyWithHTML(
-    `📖 <b>FaizanMediaBot - Complete Help</b>\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `📥 <b>MEDIA DOWNLOADER</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `Bas link paste karo — auto download!\n` +
-    `▶️ YouTube, 📸 Instagram, 🎵 TikTok\n` +
-    `🐦 Twitter/X, 👥 Facebook, 🔴 Reddit\n\n` +
-    `/video [link] — YouTube video (720p)\n` +
-    `/mp3 [link] — YouTube MP3 audio\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `🤖 <b>AI CHAT</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `/ai [sawaal] — AI se baat karo\n` +
-    `/aireset — Chat history clear karo\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `🌤️ <b>WEATHER</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `/weather [shehar] — Mausam dekho\n` +
-    `Example: <code>/weather Delhi</code>\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `🌐 <b>TRANSLATOR</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `/translate [code] [text] — Translate karo\n` +
-    `Example: <code>/translate en Namaste</code>\n` +
-    `Codes: hi en ur ar fr de es zh ja ko ru\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `📰 <b>NEWS</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `/news india — India News 🇮🇳\n` +
-    `/news world — World News 🌍\n` +
-    `/news tech — Tech News 💻\n` +
-    `/news sports — Sports News ⚽\n` +
-    `/news business — Business News 💰\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `🎵 <b>LYRICS</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `/lyrics [Artist - Song] — Lyrics dhundo\n` +
-    `Example: <code>/lyrics Arijit Singh - Tum Hi Ho</code>\n\n` +
-
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `🛠️ <b>TOOLS</b>\n` +
-    `━━━━━━━━━━━━━━━━━━━\n` +
-    `/shorten [URL] — URL chhota karo 🔗\n` +
-    `/calc [expression] — Calculator 🧮\n` +
-    `/crypto [coin] — Crypto price 💰\n` +
-    `/quote — Motivational quote 💬\n\n` +
-
-    `⚠️ <b>Limitations:</b> Max 50MB files\n` +
-    `Private accounts download nahi honge`
+    `📖 <b>FaizanMediaBot — Help Menu</b>\n\n` +
+    `Category chuno 👇`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "📥 Downloader", callback_data: "help_download" },
+            { text: "🤖 AI Features", callback_data: "help_ai" },
+          ],
+          [
+            { text: "🛠️ Tools", callback_data: "help_tools" },
+            { text: "✨ Extras", callback_data: "help_extras" },
+          ],
+        ],
+      },
+    }
   );
+}
+
+export async function handleHelpCallback(ctx: Context) {
+  const cb = ctx.callbackQuery as any;
+  if (!cb?.data?.startsWith("help_")) return;
+
+  const section = cb.data.replace("help_", "");
+  const text = helpSections[section];
+  if (!text) return;
+
+  await ctx.answerCbQuery().catch(() => {});
+  await ctx.editMessageText(text, {
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "📥 Downloader", callback_data: "help_download" },
+          { text: "🤖 AI Features", callback_data: "help_ai" },
+        ],
+        [
+          { text: "🛠️ Tools", callback_data: "help_tools" },
+          { text: "✨ Extras", callback_data: "help_extras" },
+        ],
+      ],
+    },
+  });
 }
